@@ -2223,6 +2223,8 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       CTimer::triggerEvent();
 
+      s_UDTUnited.m_EPoll.update_events(m_SocketID, m_sPollID, UDT_EPOLL_ERR, true);
+
       break;
 
    case 7: //111 - Msg drop request

@@ -103,6 +103,8 @@ int CEPoll::add_usock(const int eid, const UDTSOCKET& u, const int* events)
       p->second.m_sUDTSocksIn.insert(u);
    if (!events || (*events & UDT_EPOLL_OUT))
       p->second.m_sUDTSocksOut.insert(u);
+   if (!events || (*events & UDT_EPOLL_ERR))
+      p->second.m_sUDTSocksEx.insert(u);
 
    return 0;
 }
@@ -154,6 +156,10 @@ int CEPoll::remove_usock(const int eid, const UDTSOCKET& u)
    p->second.m_sUDTSocksOut.erase(u);
    p->second.m_sUDTSocksEx.erase(u);
 
+   p->second.m_sUDTReads.erase(u);
+   p->second.m_sUDTWrites.erase(u);
+   p->second.m_sUDTExcepts.erase(u);
+
    return 0;
 }
 
@@ -202,27 +208,24 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
          throw CUDTException(5, 13);
       }
 
-      if (p->second.m_sUDTSocksIn.empty() && p->second.m_sUDTSocksOut.empty() && p->second.m_sLocals.empty() && (msTimeOut < 0))
+      if (p->second.m_sUDTSocksIn.empty() && p->second.m_sUDTSocksOut.empty() && p->second.m_sUDTSocksEx.empty() && p->second.m_sLocals.empty() && (msTimeOut < 0))
       {
          // no socket is being monitored, this may be a deadlock
          CGuard::leaveCS(m_EPollLock);
          throw CUDTException(5, 3);
       }
 
-      // Sockets with exceptions are returned to both read and write sets.
-      if ((NULL != readfds) && (!p->second.m_sUDTReads.empty() || !p->second.m_sUDTExcepts.empty()))
+      if (NULL != readfds)
       {
-         *readfds = p->second.m_sUDTReads;
-         for (set<UDTSOCKET>::const_iterator i = p->second.m_sUDTExcepts.begin(); i != p->second.m_sUDTExcepts.end(); ++ i)
-            readfds->insert(*i);
-         total += p->second.m_sUDTReads.size() + p->second.m_sUDTExcepts.size();
+        readfds->insert(p->second.m_sUDTReads.begin(), p->second.m_sUDTReads.end());
+        readfds->insert(p->second.m_sUDTExcepts.begin(), p->second.m_sUDTExcepts.end());
+        total += readfds->size();
       }
-      if ((NULL != writefds) && (!p->second.m_sUDTWrites.empty() || !p->second.m_sUDTExcepts.empty()))
+      if (NULL != writefds)
       {
-         *writefds = p->second.m_sUDTWrites;
-         for (set<UDTSOCKET>::const_iterator i = p->second.m_sUDTExcepts.begin(); i != p->second.m_sUDTExcepts.end(); ++ i)
-            writefds->insert(*i);
-         total += p->second.m_sUDTWrites.size() + p->second.m_sUDTExcepts.size();
+        writefds->insert(p->second.m_sUDTWrites.begin(), p->second.m_sUDTWrites.end());
+        writefds->insert(p->second.m_sUDTExcepts.begin(), p->second.m_sUDTExcepts.end());
+        total += writefds->size();
       }
 
       if (lrfds || lwfds)
