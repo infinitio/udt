@@ -85,6 +85,7 @@ public:
    int m_iMuxID;                             // multiplexer ID
 
    pthread_mutex_t m_ControlLock;            // lock this socket exclusively for control APIs: bind/listen/connect
+   bool m_Read, m_Write, m_Err;
 
 private:
    CUDTSocket(const CUDTSocket&);
@@ -222,7 +223,7 @@ private:
       pthread_mutex_t m_TLSLock;
    #endif
 
-private:
+public:
    void connect_complete(const UDTSOCKET u);
    CUDTSocket* locate(const UDTSOCKET u);
    CUDTSocket* locate(const sockaddr* peer, const UDTSOCKET id, int32_t isn);

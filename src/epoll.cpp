@@ -47,6 +47,8 @@ written by
 #include <cstring>
 #include <iterator>
 
+#include "api.h"
+#include "core.h"
 #include "common.h"
 #include "epoll.h"
 #include "udt.h"
@@ -100,11 +102,23 @@ int CEPoll::add_usock(const int eid, const UDTSOCKET& u, const int* events)
       throw CUDTException(5, 13);
 
    if (!events || (*events & UDT_EPOLL_IN))
+   {
       p->second.m_sUDTSocksIn.insert(u);
+      if (CUDT::s_UDTUnited.locate(u)->m_Read)
+        p->second.m_sUDTReads.insert(u);
+   }
    if (!events || (*events & UDT_EPOLL_OUT))
+   {
       p->second.m_sUDTSocksOut.insert(u);
+      if (CUDT::s_UDTUnited.locate(u)->m_Write)
+        p->second.m_sUDTWrites.insert(u);
+   }
    if (!events || (*events & UDT_EPOLL_ERR))
+   {
       p->second.m_sUDTSocksEx.insert(u);
+      if (CUDT::s_UDTUnited.locate(u)->m_Err)
+        p->second.m_sUDTExcepts.insert(u);
+   }
 
    return 0;
 }
@@ -338,7 +352,7 @@ void update_epoll_sets(const UDTSOCKET& uid, const set<UDTSOCKET>& watch, set<UD
 
 }  // namespace
 
-int CEPoll::update_events(const UDTSOCKET& uid, std::set<int>& eids, int events, bool enable)
+int CEPoll::update_events(CUDTSocket& socket, std::set<int>& eids, int events, bool enable)
 {
    CGuard pg(m_EPollLock);
 
@@ -354,12 +368,21 @@ int CEPoll::update_events(const UDTSOCKET& uid, std::set<int>& eids, int events,
       }
       else
       {
-         if ((events & UDT_EPOLL_IN) != 0)
-            update_epoll_sets(uid, p->second.m_sUDTSocksIn, p->second.m_sUDTReads, enable);
+         if (events & UDT_EPOLL_IN)
+         {
+            socket.m_Read = enable;
+            update_epoll_sets(socket.m_SocketID, p->second.m_sUDTSocksIn, p->second.m_sUDTReads, enable);
+         }
          if ((events & UDT_EPOLL_OUT) != 0)
-            update_epoll_sets(uid, p->second.m_sUDTSocksOut, p->second.m_sUDTWrites, enable);
+         {
+            socket.m_Write = enable;
+            update_epoll_sets(socket.m_SocketID, p->second.m_sUDTSocksOut, p->second.m_sUDTWrites, enable);
+         }
          if ((events & UDT_EPOLL_ERR) != 0)
-            update_epoll_sets(uid, p->second.m_sUDTSocksEx, p->second.m_sUDTExcepts, enable);
+         {
+            socket.m_Err = enable;
+            update_epoll_sets(socket.m_SocketID, p->second.m_sUDTSocksEx, p->second.m_sUDTExcepts, enable);
+         }
       }
    }
 

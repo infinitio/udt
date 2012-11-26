@@ -69,7 +69,10 @@ m_pAcceptSockets(NULL),
 m_AcceptCond(),
 m_AcceptLock(),
 m_uiBackLog(0),
-m_iMuxID(-1)
+m_iMuxID(-1),
+m_Read(false),
+m_Write(false),
+m_Err(false)
 {
    #ifndef WIN32
       pthread_mutex_init(&m_AcceptLock, NULL);
@@ -437,7 +440,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    CGuard::leaveCS(ls->m_AcceptLock);
 
    // acknowledge users waiting for new connections on the listening socket
-   m_EPoll.update_events(listen, ls->m_pUDT->m_sPollID, UDT_EPOLL_IN, true);
+   m_EPoll.update_events(*ls, ls->m_pUDT->m_sPollID, UDT_EPOLL_IN, true);
 
    CTimer::triggerEvent();
 
@@ -494,7 +497,7 @@ UDTSTATUS CUDTUnited::getStatus(const UDTSOCKET u)
    if (i->second->m_pUDT->m_bBroken)
       return BROKEN;
 
-   return i->second->m_Status;   
+   return i->second->m_Status;
 }
 
 int CUDTUnited::bind(const UDTSOCKET u, const sockaddr* name, int namelen)
@@ -664,7 +667,7 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
             pthread_cond_wait(&(ls->m_AcceptCond), &(ls->m_AcceptLock));
 
          if (ls->m_pQueuedSockets->empty())
-            m_EPoll.update_events(listen, ls->m_pUDT->m_sPollID, UDT_EPOLL_IN, false);
+            m_EPoll.update_events(*ls, ls->m_pUDT->m_sPollID, UDT_EPOLL_IN, false);
 
          pthread_mutex_unlock(&(ls->m_AcceptLock));
       }
@@ -1226,7 +1229,7 @@ void CUDTUnited::checkBrokenSockets()
    {
       if (j->second->m_pUDT->m_ullLingerExpiration > 0)
       {
-         // asynchronous close: 
+         // asynchronous close:
          if ((NULL == j->second->m_pUDT->m_pSndBuffer) || (0 == j->second->m_pUDT->m_pSndBuffer->getCurrBufSize()) || (j->second->m_pUDT->m_ullLingerExpiration <= CTimer::getTime()))
          {
             j->second->m_pUDT->m_ullLingerExpiration = 0;
