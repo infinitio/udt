@@ -1,0 +1,51 @@
+import drake
+import drake.cxx
+
+config = None
+library = None
+
+def configure(cxx_toolkit = None, cxx_config = None, prefix = '/usr'):
+
+  global config, library
+
+  cxx_toolkit = cxx_toolkit or drake.cxx.Toolkit()
+  config = drake.cxx.Config(cxx_config)
+  prefix = drake.Path(prefix)
+
+  headers = drake.nodes(
+    'src/api.h',
+    'src/buffer.h',
+    'src/cache.h',
+    'src/ccc.h',
+    'src/channel.h',
+    'src/common.h',
+    'src/core.h',
+    'src/epoll.h',
+    'src/list.h',
+    'src/md5.h',
+    'src/packet.h',
+    'src/queue.h',
+    'src/udt.h',
+    'src/window.h',
+    )
+
+  sources = drake.nodes(
+    'src/api.cpp',
+    'src/buffer.cpp',
+    'src/cache.cpp',
+    'src/ccc.cpp',
+    'src/channel.cpp',
+    'src/common.cpp',
+    'src/core.cpp',
+    'src/epoll.cpp',
+    'src/list.cpp',
+    'src/md5.cpp',
+    'src/packet.cpp',
+    'src/queue.cpp',
+    'src/window.cpp',
+    )
+  library = drake.cxx.DynLib('lib/udt', headers + sources, cxx_toolkit, config)
+
+  install = drake.Rule('install')
+  install << drake.copy(library, prefix)
+  install << drake.copy(headers, prefix / 'include', 'src')
