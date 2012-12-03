@@ -793,6 +793,11 @@ int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, int namelen)
    return 0;
 }
 
+bool CUDTUnited::connected(const UDTSOCKET u)
+{
+  return this->locate(u)->m_pUDT->connected();
+}
+
 void CUDTUnited::connect_complete(const UDTSOCKET u)
 {
    CUDTSocket* s = locate(u);
@@ -1675,6 +1680,12 @@ UDTSOCKET CUDT::accept(UDTSOCKET u, sockaddr* addr, int* addrlen)
    }
 }
 
+bool
+CUDT::connected(UDTSOCKET u)
+{
+   return s_UDTUnited.connected(u);
+}
+
 int CUDT::connect(UDTSOCKET u, const sockaddr* name, int namelen)
 {
    try
@@ -2199,6 +2210,11 @@ UDTSOCKET accept(UDTSOCKET u, struct sockaddr* addr, int* addrlen)
 int connect(UDTSOCKET u, const struct sockaddr* name, int namelen)
 {
    return CUDT::connect(u, name, namelen);
+}
+
+bool connected(UDTSOCKET u)
+{
+   return CUDT::connected(u);
 }
 
 int close(UDTSOCKET u)

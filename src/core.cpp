@@ -567,6 +567,11 @@ void CUDT::listen()
    m_bListening = true;
 }
 
+bool CUDT::connected()
+{
+  return m_bConnected;
+}
+
 void CUDT::connect(const sockaddr* serv_addr)
 {
    CGuard cg(m_ConnectionLock);
@@ -2552,7 +2557,6 @@ void CUDT::checkTimers()
    if ((currtime > m_ullNextACKTime) || ((m_pCC->m_iACKInterval > 0) && (m_pCC->m_iACKInterval <= m_iPktCount)))
    {
       // ACK timer expired or ACK interval is reached
-
       sendCtrl(2);
       CTimer::rdtsc(currtime);
       if (m_pCC->m_iACKPeriod > 0)

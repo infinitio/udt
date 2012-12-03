@@ -169,6 +169,7 @@ public:
    int listen(const UDTSOCKET u, int backlog);
    UDTSOCKET accept(const UDTSOCKET listen, sockaddr* addr, int* addrlen);
    int connect(const UDTSOCKET u, const sockaddr* name, int namelen);
+   bool connected(const UDTSOCKET u);
    int close(const UDTSOCKET u);
    int getpeername(const UDTSOCKET u, sockaddr* name, int* namelen);
    int getsockname(const UDTSOCKET u, sockaddr* name, int* namelen);

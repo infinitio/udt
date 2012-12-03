@@ -84,6 +84,7 @@ public: //API
    static int listen(UDTSOCKET u, int backlog);
    static UDTSOCKET accept(UDTSOCKET u, sockaddr* addr, int* addrlen);
    static int connect(UDTSOCKET u, const sockaddr* name, int namelen);
+   static bool connected(UDTSOCKET u);
    static int close(UDTSOCKET u);
    static int getpeername(UDTSOCKET u, sockaddr* name, int* namelen);
    static int getsockname(UDTSOCKET u, sockaddr* name, int* namelen);
@@ -138,6 +139,8 @@ private:
       //    None.
 
    void connect(const sockaddr* peer);
+
+   bool connected();
 
       // Functionality:
       //    Process the response handshake packet.
