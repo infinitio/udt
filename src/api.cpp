@@ -75,9 +75,14 @@ m_Write(false),
 m_Err(false)
 {
    #ifndef WIN32
+      // FIXME: return values ...
+      pthread_mutexattr_t attr;
+      pthread_mutexattr_init(&attr);
+      if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE))
+        std::abort();
       pthread_mutex_init(&m_AcceptLock, NULL);
       pthread_cond_init(&m_AcceptCond, NULL);
-      pthread_mutex_init(&m_ControlLock, NULL);
+      pthread_mutex_init(&m_ControlLock, &attr);
    #else
       m_AcceptLock = CreateMutex(NULL, false, NULL);
       m_AcceptCond = CreateEvent(NULL, false, false, NULL);
@@ -1185,11 +1190,12 @@ CUDTSocket* CUDTUnited::locate(const sockaddr* peer, const UDTSOCKET id, int32_t
 
 void CUDTUnited::checkBrokenSockets()
 {
-   CGuard cg(m_ControlLock);
-
    // set of sockets To Be Closed and To Be Removed
    vector<UDTSOCKET> tbc;
    vector<UDTSOCKET> tbr;
+
+   {
+   CGuard cg(m_ControlLock);;
 
    for (map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.begin(); i != m_Sockets.end(); ++ i)
    {
@@ -1253,6 +1259,7 @@ void CUDTUnited::checkBrokenSockets()
    // move closed sockets to the ClosedSockets structure
    for (vector<UDTSOCKET>::iterator k = tbc.begin(); k != tbc.end(); ++ k)
       m_Sockets.erase(*k);
+   }
 
    // remove those timeout sockets
    for (vector<UDTSOCKET>::iterator l = tbr.begin(); l != tbr.end(); ++ l)
@@ -1261,6 +1268,9 @@ void CUDTUnited::checkBrokenSockets()
 
 void CUDTUnited::removeSocket(const UDTSOCKET u)
 {
+   map<int, CMultiplexer>::iterator m;
+   {
+   CGuard cg(m_ControlLock);;
    map<UDTSOCKET, CUDTSocket*>::iterator i = m_ClosedSockets.find(u);
 
    // invalid socket ID
@@ -1302,14 +1312,13 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
    delete i->second;
    m_ClosedSockets.erase(i);
 
-   map<int, CMultiplexer>::iterator m;
    m = m_mMultiplexer.find(mid);
    if (m == m_mMultiplexer.end())
    {
       //something is wrong!!!
       return;
    }
-
+   }
    m->second.m_iRefCount --;
    if (0 == m->second.m_iRefCount)
    {
