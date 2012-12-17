@@ -1,0 +1,15 @@
+add_library(udt
+  src/api.cpp
+  src/buffer.cpp
+  src/cache.cpp
+  src/ccc.cpp
+  src/channel.cpp
+  src/common.cpp
+  src/core.cpp
+  src/epoll.cpp
+  src/list.cpp
+  src/md5.cpp
+  src/packet.cpp
+  src/queue.cpp
+  src/window.cpp
+)
