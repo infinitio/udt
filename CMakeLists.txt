@@ -1,3 +1,7 @@
+if(APPLE)
+  add_definitions(-DOSX)
+endif(APPLE)
+
 add_library(udt
   src/api.cpp
   src/buffer.cpp
