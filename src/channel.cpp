@@ -303,6 +303,7 @@ int CChannel::recvfrom(sockaddr* addr, CPacket& packet) const
       #endif
 
       int res = ::recvmsg(m_iSocket, &mh, 0);
+      usleep(10); // XXX XXX HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
    #else
       DWORD size = CPacket::m_iPktHdrSize + packet.getLength();
       DWORD flag = 0;
