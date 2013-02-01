@@ -8,6 +8,10 @@ def configure(cxx_toolkit = None, cxx_config = None, prefix = '/usr'):
 
   global config, library
 
+  # OS-specific
+  if cxx_toolkit.os == drake.os.macos:
+    cxx_config.define('OSX')
+
   cxx_toolkit = cxx_toolkit or drake.cxx.Toolkit()
   config = drake.cxx.Config(cxx_config)
   config.add_local_include_path('include')
