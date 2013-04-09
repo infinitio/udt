@@ -846,9 +846,14 @@ void CRendezvousQueue::updateConnStatus()
          {
             // connection timer expired, acknowledge app via epoll
             i->m_pUDT->m_bConnecting = false;
-            CUDT::s_UDTUnited.m_EPoll.update_events(*CUDT::s_UDTUnited.locate(i->m_iID),
-                                                    i->m_pUDT->m_sPollID, 
-                                                    UDT_EPOLL_ERR, true);
+            // XXX FIX THIS FOR REAL SOME DAY
+            if (CUDT::s_UDTUnited.locate(i->m_iID) != NULL)
+            {
+                CUDT::s_UDTUnited.m_EPoll.update_events(
+                    *CUDT::s_UDTUnited.locate(i->m_iID),
+                    i->m_pUDT->m_sPollID,
+                    UDT_EPOLL_ERR, true);
+            }
             continue;
          }
 
