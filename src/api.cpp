@@ -1307,6 +1307,8 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
          m_PeerRec.erase(j);
    }
 
+   i->second->m_pUDT->m_pRcvQueue->m_pRendezvousQueue->remove(u);
+
    // delete this one
    i->second->m_pUDT->close();
    delete i->second;
