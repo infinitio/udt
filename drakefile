@@ -14,6 +14,7 @@ def configure(cxx_toolkit = None, cxx_config = None, prefix = '/usr'):
 
   cxx_toolkit = cxx_toolkit or drake.cxx.Toolkit()
   config = drake.cxx.Config(cxx_config)
+  config.define('UNIX')
   config.add_local_include_path('include')
   config.lib_path('lib')
   prefix = drake.Path(prefix)
