@@ -53,6 +53,10 @@ written by
 #include "epoll.h"
 #include "udt.h"
 
+#include <elle/log.hh>
+
+ELLE_LOG_COMPONENT("udt.EPoll");
+
 using namespace std;
 
 CEPoll::CEPoll():
@@ -198,9 +202,14 @@ int CEPoll::remove_ssock(const int eid, const SYSSOCKET& s)
 
 int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
 {
+   ELLE_TRACE("epoll %s: wait for %s ms (read: %s, write: %s)",
+              eid, msTimeOut, bool(readfds), bool(writefds));
    // if all fields is NULL and waiting time is infinite, then this would be a deadlock
    if (!readfds && !writefds && !lrfds && lwfds && (msTimeOut < 0))
+   {
+      ELLE_ERR("epoll %s: called with infinit timeout and no sockets", eid);
       throw CUDTException(5, 3, 0);
+   }
 
    // Clear these sets in case the app forget to do it.
    if (readfds) readfds->clear();
@@ -213,18 +222,22 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
    int64_t entertime = CTimer::getTime();
    while (true)
    {
+      ELLE_DEBUG_SCOPE("epoll %s: start poll round", eid);
       CGuard::enterCS(m_EPollLock);
+      ELLE_DEBUG("epoll %s: locked", eid);
 
       map<int, CEPollDesc>::iterator p = m_mPolls.find(eid);
       if (p == m_mPolls.end())
       {
          CGuard::leaveCS(m_EPollLock);
+         ELLE_ERR("epoll %s: does not exist", eid);
          throw CUDTException(5, 13);
       }
 
       if (p->second.m_sUDTSocksIn.empty() && p->second.m_sUDTSocksOut.empty() && p->second.m_sUDTSocksEx.empty() && p->second.m_sLocals.empty() && (msTimeOut < 0))
       {
          // no socket is being monitored, this may be a deadlock
+         ELLE_ERR("epoll %s: does not monitor anything", eid);
          CGuard::leaveCS(m_EPollLock);
          throw CUDTException(5, 3);
       }
@@ -234,12 +247,16 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
         readfds->insert(p->second.m_sUDTReads.begin(), p->second.m_sUDTReads.end());
         readfds->insert(p->second.m_sUDTExcepts.begin(), p->second.m_sUDTExcepts.end());
         total += readfds->size();
+        ELLE_DEBUG("epoll %s: %s socket are immediately ready for reading",
+                   eid, readfds->size());
       }
       if (NULL != writefds)
       {
         writefds->insert(p->second.m_sUDTWrites.begin(), p->second.m_sUDTWrites.end());
         writefds->insert(p->second.m_sUDTExcepts.begin(), p->second.m_sUDTExcepts.end());
         total += writefds->size();
+        ELLE_DEBUG("epoll %s: %s socket are immediately ready for writing",
+                   eid, writefds->size());
       }
 
       if (lrfds || lwfds)
@@ -306,12 +323,16 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
       CGuard::leaveCS(m_EPollLock);
 
       if (total > 0)
+      {
+         ELLE_DEBUG("epoll %s: got %s events", eid, total);
          return total;
+      }
 
       if ((msTimeOut >= 0) && (int64_t(CTimer::getTime() - entertime) >= msTimeOut * 1000LL))
          throw CUDTException(6, 3, 0);
 
-      CTimer::waitForEvent();
+      ELLE_DEBUG("epoll %s: no events, wait", eid)
+         CTimer::waitForEvent();
    }
 
    return 0;
@@ -342,10 +363,12 @@ void update_epoll_sets(const UDTSOCKET& uid, const set<UDTSOCKET>& watch, set<UD
 {
    if (enable && (watch.find(uid) != watch.end()))
    {
+      ELLE_DEBUG("mark socket as ready");
       result.insert(uid);
    }
    else if (!enable)
    {
+      ELLE_DEBUG("unmark socket as ready");
       result.erase(uid);
    }
 }
@@ -354,6 +377,7 @@ void update_epoll_sets(const UDTSOCKET& uid, const set<UDTSOCKET>& watch, set<UD
 
 int CEPoll::update_events(CUDTSocket& socket, std::set<int>& eids, int events, bool enable)
 {
+   ELLE_TRACE_SCOPE("update events for socket %s", socket.m_SocketID);
    CGuard pg(m_EPollLock);
 
    map<int, CEPollDesc>::iterator p;
@@ -361,9 +385,12 @@ int CEPoll::update_events(CUDTSocket& socket, std::set<int>& eids, int events, b
    vector<int> lost;
    for (set<int>::iterator i = eids.begin(); i != eids.end(); ++ i)
    {
+      ELLE_DEBUG_SCOPE("epoll %s: update events for socket %s",
+                       *i, socket.m_SocketID);
       p = m_mPolls.find(*i);
       if (p == m_mPolls.end())
       {
+         ELLE_ERR("epoll %s: does not exist", *i);
          lost.push_back(*i);
       }
       else
@@ -391,3 +418,7 @@ int CEPoll::update_events(CUDTSocket& socket, std::set<int>& eids, int events, b
 
    return 0;
 }
+
+// Local Variables:
+// c-basic-offset: 3
+// End:

@@ -38,6 +38,10 @@ written by
    Yunhong Gu, last updated 07/09/2011
 *****************************************************************************/
 
+#include <elle/log.hh>
+
+ELLE_LOG_COMPONENT("udt.api");
+
 #ifdef WIN32
    #include <winsock2.h>
    #include <ws2tcpip.h>
@@ -447,7 +451,8 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    // acknowledge users waiting for new connections on the listening socket
    m_EPoll.update_events(*ls, ls->m_pUDT->m_sPollID, UDT_EPOLL_IN, true);
 
-   CTimer::triggerEvent();
+   ELLE_DEBUG("trigger event because a new connection is available")
+     CTimer::triggerEvent();
 
    ERR_ROLLBACK:
    if (error > 0)
@@ -867,7 +872,8 @@ int CUDTUnited::close(const UDTSOCKET u)
    m_Sockets.erase(s->m_SocketID);
    m_ClosedSockets.insert(pair<UDTSOCKET, CUDTSocket*>(s->m_SocketID, s));
 
-   CTimer::triggerEvent();
+   ELLE_DEBUG("trigger event because a socket was closed")
+     CTimer::triggerEvent();
 
    return 0;
 }

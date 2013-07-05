@@ -38,6 +38,7 @@ written by
    Yunhong Gu, last updated 07/25/2010
 *****************************************************************************/
 
+#include <elle/log.hh>
 
 #ifndef WIN32
    #include <cstring>
@@ -117,8 +118,8 @@ void CTimer::rdtsc(uint64_t &x)
       x = hval;
       x = (x << 32) | lval;
    #elif defined(WIN32)
-      //HANDLE hCurThread = ::GetCurrentThread(); 
-      //DWORD_PTR dwOldMask = ::SetThreadAffinityMask(hCurThread, 1); 
+      //HANDLE hCurThread = ::GetCurrentThread();
+      //DWORD_PTR dwOldMask = ::SetThreadAffinityMask(hCurThread, 1);
       BOOL ret = QueryPerformanceCounter((LARGE_INTEGER *)&x);
       //SetThreadAffinityMask(hCurThread, dwOldMask);
       if (!ret)
@@ -255,26 +256,28 @@ uint64_t CTimer::getTime()
       return t.tv_sec * 1000000ULL + t.tv_usec;
    #else
       LARGE_INTEGER ccf;
-      HANDLE hCurThread = ::GetCurrentThread(); 
+      HANDLE hCurThread = ::GetCurrentThread();
       DWORD_PTR dwOldMask = ::SetThreadAffinityMask(hCurThread, 1);
       if (QueryPerformanceFrequency(&ccf))
       {
          LARGE_INTEGER cc;
          if (QueryPerformanceCounter(&cc))
          {
-            SetThreadAffinityMask(hCurThread, dwOldMask); 
+            SetThreadAffinityMask(hCurThread, dwOldMask);
             return (cc.QuadPart * 1000000ULL / ccf.QuadPart);
          }
       }
 
-      SetThreadAffinityMask(hCurThread, dwOldMask); 
+      SetThreadAffinityMask(hCurThread, dwOldMask);
       return GetTickCount() * 1000ULL;
    #endif
 }
 
 void CTimer::triggerEvent()
 {
+   ELLE_LOG_COMPONENT("udt.event");
    #ifndef WIN32
+      ELLE_TRACE("trigger event");
       pthread_cond_signal(&m_EventCond);
    #else
       SetEvent(m_EventCond);
@@ -283,6 +286,7 @@ void CTimer::triggerEvent()
 
 void CTimer::waitForEvent()
 {
+   ELLE_LOG_COMPONENT("udt.event");
    #ifndef WIN32
       timeval now;
       timespec timeout;
@@ -298,6 +302,7 @@ void CTimer::waitForEvent()
          timeout.tv_nsec = (now.tv_usec + 10000 - 1000000) * 1000;
       }
       pthread_mutex_lock(&m_EventLock);
+      ELLE_TRACE("wait event");
       pthread_cond_timedwait(&m_EventCond, &m_EventLock, &timeout);
       pthread_mutex_unlock(&m_EventLock);
    #else
@@ -524,7 +529,7 @@ const char* CUDTException::getErrorMessage()
 
       case 5:
         m_strMsg = "Operation not supported";
- 
+
         switch (m_iMinor)
         {
         case 1:
@@ -763,3 +768,7 @@ void CMD5::compute(const char* input, unsigned char result[16])
    md5_append(&state, (const md5_byte_t *)input, strlen(input));
    md5_finish(&state, result);
 }
+
+// Local Variables:
+// c-basic-offset: 3
+// End:

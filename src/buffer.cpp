@@ -38,9 +38,13 @@ written by
    Yunhong Gu, last updated 03/12/2011
 *****************************************************************************/
 
+#include <elle/log.hh>
+
 #include <cstring>
 #include <cmath>
 #include "buffer.h"
+
+ELLE_LOG_COMPONENT("udt.buffer");
 
 using namespace std;
 
@@ -274,7 +278,8 @@ void CSndBuffer::ackData(int offset)
 
    m_iCount -= offset;
 
-   CTimer::triggerEvent();
+   ELLE_DEBUG("trigger event because data was sent")
+      CTimer::triggerEvent();
 }
 
 int CSndBuffer::getCurrBufSize() const
@@ -379,7 +384,7 @@ int CRcvBuffer::addData(CUnit* unit, int offset)
 
    if (NULL != m_pUnit[pos])
       return -1;
-   
+
    m_pUnit[pos] = unit;
 
    unit->m_iFlag = 1;
@@ -471,7 +476,8 @@ void CRcvBuffer::ackData(int len)
    if (m_iMaxPos < 0)
       m_iMaxPos = 0;
 
-   CTimer::triggerEvent();
+   ELLE_DEBUG("trigger event because data was sent")
+      CTimer::triggerEvent();
 }
 
 int CRcvBuffer::getAvailBufSize() const
@@ -650,3 +656,8 @@ bool CRcvBuffer::scanMsg(int& p, int& q, bool& passack)
 
    return found;
 }
+
+
+// Local Variables:
+// c-basic-offset: 3
+// End:

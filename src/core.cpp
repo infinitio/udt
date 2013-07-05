@@ -38,6 +38,10 @@ written by
    Yunhong Gu, last updated 02/28/2012
 *****************************************************************************/
 
+#include <elle/log.hh>
+
+ELLE_LOG_COMPONENT("udt.core");
+
 #ifndef WIN32
    #include <unistd.h>
    #include <netdb.h>
@@ -2232,7 +2236,8 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       // Signal the sender and recver if they are waiting for data.
       releaseSynch();
 
-      CTimer::triggerEvent();
+      ELLE_DEBUG("trigger event because socket was shut down")
+        CTimer::triggerEvent();
 
       s_UDTUnited.m_EPoll.update_events(*s_UDTUnited.locate(m_SocketID), m_sPollID, UDT_EPOLL_ERR, true);
 
@@ -2618,7 +2623,8 @@ void CUDT::checkTimers()
          // app can call any UDT API to learn the connection_broken error
          s_UDTUnited.m_EPoll.update_events(*s_UDTUnited.locate(m_SocketID), m_sPollID, UDT_EPOLL_IN | UDT_EPOLL_OUT | UDT_EPOLL_ERR, true);
 
-         CTimer::triggerEvent();
+         ELLE_DEBUG("trigger event because a socket timed out")
+           CTimer::triggerEvent();
 
          return;
       }
@@ -2685,3 +2691,7 @@ void CUDT::removeEPoll(const int eid)
    m_sPollID.erase(eid);
    CGuard::leaveCS(s_UDTUnited.m_EPoll.m_EPollLock);
 }
+
+// Local Variables:
+// c-basic-offset: 3
+// End:
